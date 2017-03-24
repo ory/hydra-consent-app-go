@@ -1,0 +1,21 @@
+sudo: required
+
+language: go
+
+go:
+  - 1.8
+
+install:
+  - go get . github.com/Masterminds/glide
+  - glide install
+  - (cd ../../ory-am/hydra; glide install)
+  - go install github.com/ory-am/hydra
+  - go install .
+
+script:
+  - export FORCE_ROOT_CLIENT_CREDENTIALS=demo:demo
+  - export CONSENT_URL=http://localhost:4445/consent
+  - hydra host --dangerous-force-http &
+  - while ! echo exit | nc localhost 4444; do sleep 1; done
+  - hydra-consent-app-go &
+  - while ! echo exit | nc localhost 4445; do sleep 1; done

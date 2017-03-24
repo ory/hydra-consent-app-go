@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Please give your consent</title>
+</head>
+<body>
+    <p>
+        An application (id: {{.Audience}}) requested consent to access resources on your behalf. The application wants access to:
+    </p>
+    <form action="/consent?challenge={{.Challenge}}" method="POST">
+        <ul>
+            {{range .RequestedScopes}}
+                <li><input type="checkbox" name="{{.}}">{{.}}</li>
+            {{end}}
+        </ul>
+        <input type="submit">
+    </form>
+</body>
+</html>
