@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Success!</title>
+</head>
+<body>
+    <p>
+        OAuth2 authorize code flow was performed successfully!
+    </p>
+    <dl>
+        <dt>AccessToken</dt>
+        <dd><code>{{.AccessToken}}</code></dd>
+        <dt>TokenType</dt>
+        <dd><code>{{.TokenType}}</code></dd>
+        <dt>RefreshToken</dt>
+        <dd><code>{{.RefreshToken}}</code></dd>
+        <dt>Expiry</dt>
+        <dd><code>{{.Expiry}}</code></dd>
+        <dt>ID Token</dt>
+        <dd><code>{{.IDToken}}</code></dd>
+    </dl>
+    <p>
+        <a href="/">Do it again</a>
+    </p>
+</body>
+</html>
