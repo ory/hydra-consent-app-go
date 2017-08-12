@@ -1,0 +1,41 @@
+settings:
+  resources:
+    streams: streams.log
+    logs: logs.log
+    errors: errors.log
+  server:
+    enable: true
+    open: false
+    host: localhost
+    port: 5001
+  config:
+    flimit: 0
+    polling: false
+    polling_interval: 200ms
+    kill_on_error: false
+projects:
+- name: hydra-consent-app-go
+  path: .
+  fmt: true
+  test: false
+  generate: false
+  bin: true
+  build: false
+  run: true
+  params: []
+  watcher:
+    before: []
+    after: []
+    paths:
+    - /
+    ignore_paths:
+    - vendor
+    exts:
+    - .go
+    preview: false
+  cli:
+    streams: true
+  file:
+    streams: false
+    logs: false
+    errors: false

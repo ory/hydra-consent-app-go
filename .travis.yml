@@ -6,15 +6,17 @@ go:
   - 1.8
 
 install:
-  - go get . github.com/Masterminds/glide
+  - go get github.com/Masterminds/glide
   - glide install
-  - (cd ../../ory-am/hydra; glide install)
-  - go install github.com/ory-am/hydra
+  - go get -d github.com/ory/hydra
+  - (cd ../../ory/hydra; glide install)
+  - go install github.com/ory/hydra
   - go install .
 
 script:
   - export FORCE_ROOT_CLIENT_CREDENTIALS=demo:demo
   - export CONSENT_URL=http://localhost:4445/consent
+  - export DATABASE_URL=memory
   - hydra host --dangerous-force-http &
   - while ! echo exit | nc localhost 4444; do sleep 1; done
   - hydra-consent-app-go &
