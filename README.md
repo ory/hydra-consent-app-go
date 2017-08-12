@@ -6,7 +6,7 @@ This is a simple consent app for Hydra written in Go. It uses the Hydra SDK. To 
 and this project:
 
 ```
-go get -u https://github.com/ory/hydra-consent-app-go github.com/Masterminds/glide
+go get -u github.com/ory/hydra-consent-app-go github.com/Masterminds/glide
 cd $GOPATH/src/github.com/ory/hydra-consent-app-go
 glide install
 ```
