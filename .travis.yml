@@ -16,6 +16,7 @@ install:
 script:
   - export FORCE_ROOT_CLIENT_CREDENTIALS=demo:demo
   - export CONSENT_URL=http://localhost:4445/consent
+  - export DATABASE_URL=memory
   - hydra host --dangerous-force-http &
   - while ! echo exit | nc localhost 4444; do sleep 1; done
   - hydra-consent-app-go &
