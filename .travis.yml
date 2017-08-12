@@ -8,8 +8,9 @@ go:
 install:
   - go get github.com/Masterminds/glide
   - glide install
-  - (cd ../../ory-am/hydra; glide install)
-  - go install github.com/ory-am/hydra
+  - go get -d github.com/ory/hydra
+  - (cd ../../ory/hydra; glide install)
+  - go install github.com/ory/hydra
   - go install .
 
 script:
