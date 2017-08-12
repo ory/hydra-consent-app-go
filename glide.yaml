@@ -5,7 +5,7 @@ import:
 - package: github.com/gorilla/sessions
   version: ~1.1.0
 - package: github.com/meatballhat/negroni-logrus
-- package: github.com/ory-am/hydra
+- package: github.com/ory/hydra
   version: ~0.9.12
   subpackages:
   - sdk

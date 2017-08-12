@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/meatballhat/negroni-logrus"
-	"github.com/ory-am/hydra/sdk"
+	"github.com/ory/hydra/sdk"
 	"github.com/ory/common/env"
 	"github.com/pkg/errors"
 	"github.com/urfave/negroni"
