@@ -6,7 +6,7 @@ import:
   version: ~1.1.0
 - package: github.com/meatballhat/negroni-logrus
 - package: github.com/ory/hydra
-  version: ~0.9.12
+  version: ~0.10.0-alpha.1
   subpackages:
   - sdk
 - package: github.com/ory/common

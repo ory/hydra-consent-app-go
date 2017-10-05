@@ -16,7 +16,7 @@ Next open a shell and run:
 
 ```sh
 export FORCE_ROOT_CLIENT_CREDENTIALS=demo:demo
-export CONSENT_URL=http://localhost:4445/consent
+export CONSENT_URL=http://localhost:3000/consent
 hydra host --dangerous-force-http
 ```
 
@@ -35,7 +35,7 @@ go run main.go
 Then, open the browser:
 
 ```
-open http://localhost:4445/
+open http://localhost:3000/
 ```
 
 Now follow the steps described in the browser. If you encounter an error, use the browser's back button to get back
