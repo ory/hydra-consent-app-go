@@ -5,7 +5,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/meatballhat/negroni-logrus"
-	"github.com/ory/hydra/sdk"
 	"github.com/ory/common/env"
 	"github.com/pkg/errors"
 	"github.com/urfave/negroni"
@@ -13,6 +12,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"github.com/ory/hydra/sdk/go/hydra"
+	"github.com/ory/hydra/sdk/go/hydra/swagger"
 )
 
 // This store will be used to save user authentication
@@ -22,7 +23,7 @@ var store = sessions.NewCookieStore([]byte("something-very-secret-keep-it-safe")
 const sessionName = "authentication"
 
 // This is the Hydra SDK
-var client *sdk.Client
+var client hydra.SDK
 
 // A state for performing the OAuth 2.0 flow. This is usually not part of a consent app, but in order for the demo
 // to make sense, it performs the OAuth 2.0 authorize code flow.
@@ -32,12 +33,14 @@ func main() {
 	var err error
 
 	// Initialize the hydra SDK. The defaults work if you started hydra as described in the README.md
-	if client, err = sdk.Connect(
-		sdk.ClientID(env.Getenv("HYDRA_CLIENT_ID", "demo")),
-		sdk.ClientSecret(env.Getenv("HYDRA_CLIENT_SECRET", "demo")),
-		sdk.ClusterURL(env.Getenv("HYDRA_CLUSTER_URL", "http://localhost:4444")),
-	); err != nil {
-		log.Fatalf("Could not connect to Hydra because: %s", err)
+	client, err = hydra.NewSDK(&hydra.Configuration{
+		ClientID:     env.Getenv("HYDRA_CLIENT_ID", "demo"),
+		ClientSecret: env.Getenv("HYDRA_CLIENT_SECRET", "demo"),
+		EndpointURL:  env.Getenv("HYDRA_CLUSTER_URL", "http://localhost:4444"),
+		Scopes:       []string{"hydra.consent"},
+	})
+	if err != nil {
+		log.Fatalf("Unable to connect to the Hydra SDK because %s", err)
 	}
 
 	// Set up a router and some routes
@@ -53,39 +56,45 @@ func main() {
 	n.UseHandler(r)
 
 	// Start http server
-	http.ListenAndServe(":4445", n)
-	log.Println("Listening on :4445")
+	log.Println("Listening on :"+ env.Getenv("PORT", "3000"))
+	http.ListenAndServe(":" + env.Getenv("PORT", "3000"), n)
 }
 
 // handles request at /home - a small page that let's you know what you can do in this app. Usually the first.
 // page a user sees.
 func handleHome(w http.ResponseWriter, _ *http.Request) {
-	var authUrl = client.OAuth2Config("http://localhost:4445/callback", "offline", "openid").AuthCodeURL(state) + "&nonce=" + state
+	var config = client.GetOAuth2Config()
+	config.RedirectURL = "http://localhost:4445/callback"
+	config.Scopes = []string{"offline", "openid"}
+
+	var authUrl = client.GetOAuth2Config().AuthCodeURL(state) + "&nonce=" + state
 	renderTemplate(w, "home.html", authUrl)
 }
 
 // After pressing "click here", the Authorize Code flow is performed and the user is redirected to Hydra. Next, Hydra
-// generates the consent challenge and redirects us to the consent endpoint which we set with `CONSENT_URL=http://localhost:4445/consent`.
+// validates the consent request (it's not valid yet) and redirects us to the consent endpoint which we set with `CONSENT_URL=http://localhost:4445/consent`.
 func handleConsent(w http.ResponseWriter, r *http.Request) {
-
-	// Get the challenge from the query.
-	challenge := r.URL.Query().Get("challenge")
-	if challenge == "" {
-		http.Error(w, errors.New("Consent endpoint was called without a consent challenge").Error(), http.StatusBadRequest)
+	// Get the consent requerst id from the query.
+	consentRequestID := r.URL.Query().Get("consent")
+	if consentRequestID == "" {
+		http.Error(w, errors.New("Consent endpoint was called without a consent request id").Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Verify the challenge and extract the challenge claims.
-	claims, err := client.Consent.VerifyChallenge(challenge)
+	// Fetch consent information
+	consentRequest, response, err := client.GetOAuth2ConsentRequest(consentRequestID)
 	if err != nil {
-		http.Error(w, errors.Wrap(err, "The consent challenge could not be verified").Error(), http.StatusBadRequest)
+		http.Error(w, errors.Wrap(err, "The consent request endpoint does not respond").Error(), http.StatusBadRequest)
+		return
+	} else if response.StatusCode != http.StatusOK {
+		http.Error(w, errors.Wrapf(err, "Consent request endpoint gave status code %d but expected %d", response.StatusCode, http.StatusOK).Error(), http.StatusBadRequest)
 		return
 	}
 
 	// This little helper checks if our user is already authenticated. If not, we will redirect him to the login endpoint.
 	user := authenticated(r)
 	if user == "" {
-		http.Redirect(w, r, "/login?challenge="+challenge, http.StatusFound)
+		http.Redirect(w, r, "/login?consent="+consentRequestID, http.StatusFound)
 		return
 	}
 
@@ -106,29 +115,25 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 			grantedScopes = append(grantedScopes, key)
 		}
 
-		// Ok, now we generate the challenge response.
-		redirectUrl, err := client.Consent.GenerateResponse(&sdk.ResponseRequest{
-			// We need to include the original challenge.
-			Challenge: challenge,
-
+		// Ok, now we accept the consent request.
+		response, err := client.AcceptOAuth2ConsentRequest(consentRequestID, swagger.ConsentRequestAcceptance{
 			// The subject is a string, usually the user id.
 			Subject: user,
 
 			// The scopes our user granted.
-			Scopes: grantedScopes,
+			GrantScopes: grantedScopes,
 
 			// Data that will be available on the token introspection and warden endpoints.
-			AccessTokenExtra: struct {
-				Foo string `json:"foo"`
-			}{Foo: "foo"},
+			AccessTokenExtra: map[string]interface{}{"foo": "bar"},
 
 			// If we issue an ID token, we can set extra data for that id token here.
-			IDTokenExtra: struct {
-				Bar string `json:"bar"`
-			}{Bar: "bar"},
+			IdTokenExtra: map[string]interface{}{"foo": "baz"},
 		})
 		if err != nil {
-			http.Error(w, errors.Wrap(err, "Could not sign the consent challenge").Error(), http.StatusBadRequest)
+			http.Error(w, errors.Wrap(err, "The accept consent request endpoint encountered a network error").Error(), http.StatusInternalServerError)
+			return
+		} else if response.StatusCode != http.StatusNoContent {
+			http.Error(w, errors.Wrapf(err, "Accept consent request endpoint gave status code %d but expected %d", response.StatusCode, http.StatusNoContent).Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -136,22 +141,22 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 		// either handle the error in the authentication endpoint, or redirect the user back to the original application
 		// with:
 		//
-		//   redirectUrl, _ := c.DenyConsent(challenge)
-		http.Redirect(w, r, redirectUrl, http.StatusFound)
+		//   response, err := client.RejectOAuth2ConsentRequest(consentRequestId, payload)
+		http.Redirect(w, r, consentRequest.RedirectUrl, http.StatusFound)
 		return
 	}
 
 	// We received a get request, so let's show the html site where the user gives his consent.
 	renderTemplate(w, "consent.html", struct {
-		*sdk.ChallengeClaims
-		Challenge string
-	}{ChallengeClaims: claims, Challenge: challenge})
+		*swagger.OAuth2ConsentRequest
+		ConsentRequestID string
+	}{OAuth2ConsentRequest: consentRequest, ConsentRequestID: consentRequestID})
 }
 
 // The user hits this endpoint if he is not authenticated. In this example he can sign in with the credentials
 // buzz:lightyear
 func handleLogin(w http.ResponseWriter, r *http.Request) {
-	challenge := r.URL.Query().Get("challenge")
+	consentRequestId := r.URL.Query().Get("consent")
 
 	// Is it a POST request?
 	if r.Method == "POST" {
@@ -181,12 +186,12 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		// Redirect the user back to the consent endpoint. In a normal app, you would probably
 		// add some logic here that is triggered when the user actually performs authentication and is not
 		// part of the consent flow.
-		http.Redirect(w, r, "http://localhost:4445/consent?challenge="+challenge, http.StatusFound)
+		http.Redirect(w, r, "/consent?consent="+consentRequestId, http.StatusFound)
 		return
 	}
 
 	// It's a get request, so let's render the template
-	renderTemplate(w, "login.html", challenge)
+	renderTemplate(w, "login.html", consentRequestId)
 }
 
 // Once the user gave his consent, we will hit this endpoint. Again, this is not something that would
@@ -195,7 +200,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	// in the real world you should check the state query parameter, but this is omitted for brevity reasons.
 
 	// Exchange the access code for an access (and optionally) a refresh token
-	token, err := client.OAuth2Config("http://localhost:4445/callback").Exchange(context.Background(), r.URL.Query().Get("code"))
+	token, err := client.GetOAuth2Config().Exchange(context.Background(), r.URL.Query().Get("code"))
 	if err != nil {
 		http.Error(w, errors.Wrap(err, "Could not exhange token").Error(), http.StatusBadRequest)
 		return

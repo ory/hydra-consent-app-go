@@ -6,9 +6,9 @@
 </head>
 <body>
     <p>
-        An application (id: {{.Audience}}) requested consent to access resources on your behalf. The application wants access to:
+        An application (id: {{.ClientId}}) requested consent to access resources on your behalf. The application wants access to:
     </p>
-    <form action="/consent?challenge={{.Challenge}}" method="POST">
+    <form action="/consent?consent={{.ConsentRequestID}}" method="POST">
         <ul>
             {{range .RequestedScopes}}
                 <li><input type="checkbox" name="{{.}}">{{.}}</li>
