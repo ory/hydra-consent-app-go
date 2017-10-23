@@ -2,18 +2,19 @@ package main
 
 import (
 	"context"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
-	"github.com/meatballhat/negroni-logrus"
-	"github.com/ory/common/env"
-	"github.com/pkg/errors"
-	"github.com/urfave/negroni"
-	"golang.org/x/oauth2"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
+	negronilogrus "github.com/meatballhat/negroni-logrus"
+	"github.com/ory/common/env"
 	"github.com/ory/hydra/sdk/go/hydra"
 	"github.com/ory/hydra/sdk/go/hydra/swagger"
+	"github.com/pkg/errors"
+	"github.com/urfave/negroni"
+	"golang.org/x/oauth2"
 )
 
 // This store will be used to save user authentication
@@ -56,8 +57,8 @@ func main() {
 	n.UseHandler(r)
 
 	// Start http server
-	log.Println("Listening on :"+ env.Getenv("PORT", "3000"))
-	http.ListenAndServe(":" + env.Getenv("PORT", "3000"), n)
+	log.Println("Listening on :" + env.Getenv("PORT", "3000"))
+	http.ListenAndServe(":"+env.Getenv("PORT", "3000"), n)
 }
 
 // handles request at /home - a small page that let's you know what you can do in this app. Usually the first.
@@ -67,8 +68,8 @@ func handleHome(w http.ResponseWriter, _ *http.Request) {
 	config.RedirectURL = "http://localhost:4445/callback"
 	config.Scopes = []string{"offline", "openid"}
 
-	var authUrl = client.GetOAuth2Config().AuthCodeURL(state) + "&nonce=" + state
-	renderTemplate(w, "home.html", authUrl)
+	var authURL = client.GetOAuth2Config().AuthCodeURL(state) + "&nonce=" + state
+	renderTemplate(w, "home.html", authURL)
 }
 
 // After pressing "click here", the Authorize Code flow is performed and the user is redirected to Hydra. Next, Hydra
@@ -91,16 +92,18 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// This little helper checks if our user is already authenticated. If not, we will redirect him to the login endpoint.
+	// This helper checks if the user is already authenticated. If not, we
+	// redirect them to the login endpoint.
 	user := authenticated(r)
 	if user == "" {
 		http.Redirect(w, r, "/login?consent="+consentRequestID, http.StatusFound)
 		return
 	}
 
-	// Apparently, the user is logged in. Now we check if we received POST request, or a GET request.
+	// Apparently, the user is logged in. Now we check if we received POST
+	// request, or a GET request.
 	if r.Method == "POST" {
-		// Ok, apparently the user gave his consent!
+		// Ok, apparently the user gave their consent!
 
 		// Parse the HTTP form - required by Go.
 		if err := r.ParseForm(); err != nil {
@@ -146,17 +149,17 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// We received a get request, so let's show the html site where the user gives his consent.
+	// We received a get request, so let's show the html site where the user may give consent.
 	renderTemplate(w, "consent.html", struct {
 		*swagger.OAuth2ConsentRequest
 		ConsentRequestID string
 	}{OAuth2ConsentRequest: consentRequest, ConsentRequestID: consentRequestID})
 }
 
-// The user hits this endpoint if he is not authenticated. In this example he can sign in with the credentials
+// The user hits this endpoint if not authenticated. In this example, they can sign in with the credentials
 // buzz:lightyear
 func handleLogin(w http.ResponseWriter, r *http.Request) {
-	consentRequestId := r.URL.Query().Get("consent")
+	consentRequestID := r.URL.Query().Get("consent")
 
 	// Is it a POST request?
 	if r.Method == "POST" {
@@ -186,16 +189,17 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		// Redirect the user back to the consent endpoint. In a normal app, you would probably
 		// add some logic here that is triggered when the user actually performs authentication and is not
 		// part of the consent flow.
-		http.Redirect(w, r, "/consent?consent="+consentRequestId, http.StatusFound)
+		http.Redirect(w, r, "/consent?consent="+consentRequestID, http.StatusFound)
 		return
 	}
 
 	// It's a get request, so let's render the template
-	renderTemplate(w, "login.html", consentRequestId)
+	renderTemplate(w, "login.html", consentRequestID)
 }
 
-// Once the user gave his consent, we will hit this endpoint. Again, this is not something that would
-// be included in a traditional consent app, but we added it so you can see the data once the consent flow is done.
+// Once the user has given their consent, we will hit this endpoint. Again,
+// this is not something that would be included in a traditional consent app,
+// but we added it so you can see the data once the consent flow is done.
 func handleCallback(w http.ResponseWriter, r *http.Request) {
 	// in the real world you should check the state query parameter, but this is omitted for brevity reasons.
 
@@ -216,15 +220,17 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// authenticated checks if our cookie store has a user stored and returns the user's name, or an empty string if he is not authenticated.
-func authenticated(r *http.Request) (user string) {
+// authenticated checks if our cookie store has a user stored and returns the
+// user's name, or an empty string if the user is not yet authenticated.
+func authenticated(r *http.Request) string {
 	session, _ := store.Get(r, sessionName)
 	if u, ok := session.Values["user"]; !ok {
 		return ""
-	} else if user, ok = u.(string); !ok {
+	} else if user, ok := u.(string); !ok {
 		return ""
+	} else {
+		return user
 	}
-	return user
 }
 
 // renderTemplate is a convenience helper for rendering templates.

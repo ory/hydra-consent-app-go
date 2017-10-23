@@ -1,12 +1,14 @@
 sudo: required
 
 language: go
+go_import_path: github.com/ory/hydra-consent-app-go
 
 go:
   - 1.9
 
 install:
   - go get github.com/Masterminds/glide
+  - go get github.com/golang/lint/golint
   - glide install
   - go get -d github.com/ory/hydra
   - (cd ../../ory/hydra; glide install)
@@ -14,6 +16,8 @@ install:
   - go install .
 
 script:
+  - go vet ./...
+  - golint -set_exit_status $(go list ./...)
   - export FORCE_ROOT_CLIENT_CREDENTIALS=demo:demo
   - export CONSENT_URL=http://localhost:4445/consent
   - export DATABASE_URL=memory

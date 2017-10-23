@@ -13,3 +13,4 @@ output/
 _book/
 dist/
 coverage.*
+/hydra-consent-app-go
