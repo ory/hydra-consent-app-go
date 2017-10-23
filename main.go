@@ -2,18 +2,19 @@ package main
 
 import (
 	"context"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
-	"github.com/meatballhat/negroni-logrus"
-	"github.com/ory/common/env"
-	"github.com/pkg/errors"
-	"github.com/urfave/negroni"
-	"golang.org/x/oauth2"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
+	negronilogrus "github.com/meatballhat/negroni-logrus"
+	"github.com/ory/common/env"
 	"github.com/ory/hydra/sdk/go/hydra"
 	"github.com/ory/hydra/sdk/go/hydra/swagger"
+	"github.com/pkg/errors"
+	"github.com/urfave/negroni"
+	"golang.org/x/oauth2"
 )
 
 // This store will be used to save user authentication
@@ -56,8 +57,8 @@ func main() {
 	n.UseHandler(r)
 
 	// Start http server
-	log.Println("Listening on :"+ env.Getenv("PORT", "3000"))
-	http.ListenAndServe(":" + env.Getenv("PORT", "3000"), n)
+	log.Println("Listening on :" + env.Getenv("PORT", "3000"))
+	http.ListenAndServe(":"+env.Getenv("PORT", "3000"), n)
 }
 
 // handles request at /home - a small page that let's you know what you can do in this app. Usually the first.
@@ -67,8 +68,8 @@ func handleHome(w http.ResponseWriter, _ *http.Request) {
 	config.RedirectURL = "http://localhost:4445/callback"
 	config.Scopes = []string{"offline", "openid"}
 
-	var authUrl = client.GetOAuth2Config().AuthCodeURL(state) + "&nonce=" + state
-	renderTemplate(w, "home.html", authUrl)
+	var authURL = client.GetOAuth2Config().AuthCodeURL(state) + "&nonce=" + state
+	renderTemplate(w, "home.html", authURL)
 }
 
 // After pressing "click here", the Authorize Code flow is performed and the user is redirected to Hydra. Next, Hydra
@@ -158,7 +159,7 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 // The user hits this endpoint if not authenticated. In this example, they can sign in with the credentials
 // buzz:lightyear
 func handleLogin(w http.ResponseWriter, r *http.Request) {
-	consentRequestId := r.URL.Query().Get("consent")
+	consentRequestID := r.URL.Query().Get("consent")
 
 	// Is it a POST request?
 	if r.Method == "POST" {
@@ -188,12 +189,12 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		// Redirect the user back to the consent endpoint. In a normal app, you would probably
 		// add some logic here that is triggered when the user actually performs authentication and is not
 		// part of the consent flow.
-		http.Redirect(w, r, "/consent?consent="+consentRequestId, http.StatusFound)
+		http.Redirect(w, r, "/consent?consent="+consentRequestID, http.StatusFound)
 		return
 	}
 
 	// It's a get request, so let's render the template
-	renderTemplate(w, "login.html", consentRequestId)
+	renderTemplate(w, "login.html", consentRequestID)
 }
 
 // Once the user has given their consent, we will hit this endpoint. Again,
