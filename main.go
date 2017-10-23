@@ -91,16 +91,18 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// This little helper checks if our user is already authenticated. If not, we will redirect him to the login endpoint.
+	// This helper checks if the user is already authenticated. If not, we
+	// redirect them to the login endpoint.
 	user := authenticated(r)
 	if user == "" {
 		http.Redirect(w, r, "/login?consent="+consentRequestID, http.StatusFound)
 		return
 	}
 
-	// Apparently, the user is logged in. Now we check if we received POST request, or a GET request.
+	// Apparently, the user is logged in. Now we check if we received POST
+	// request, or a GET request.
 	if r.Method == "POST" {
-		// Ok, apparently the user gave his consent!
+		// Ok, apparently the user gave their consent!
 
 		// Parse the HTTP form - required by Go.
 		if err := r.ParseForm(); err != nil {
@@ -146,14 +148,14 @@ func handleConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// We received a get request, so let's show the html site where the user gives his consent.
+	// We received a get request, so let's show the html site where the user may give consent.
 	renderTemplate(w, "consent.html", struct {
 		*swagger.OAuth2ConsentRequest
 		ConsentRequestID string
 	}{OAuth2ConsentRequest: consentRequest, ConsentRequestID: consentRequestID})
 }
 
-// The user hits this endpoint if he is not authenticated. In this example he can sign in with the credentials
+// The user hits this endpoint if not authenticated. In this example, they can sign in with the credentials
 // buzz:lightyear
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	consentRequestId := r.URL.Query().Get("consent")
@@ -194,8 +196,9 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "login.html", consentRequestId)
 }
 
-// Once the user gave his consent, we will hit this endpoint. Again, this is not something that would
-// be included in a traditional consent app, but we added it so you can see the data once the consent flow is done.
+// Once the user has given their consent, we will hit this endpoint. Again,
+// this is not something that would be included in a traditional consent app,
+// but we added it so you can see the data once the consent flow is done.
 func handleCallback(w http.ResponseWriter, r *http.Request) {
 	// in the real world you should check the state query parameter, but this is omitted for brevity reasons.
 
@@ -216,7 +219,8 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// authenticated checks if our cookie store has a user stored and returns the user's name, or an empty string if he is not authenticated.
+// authenticated checks if our cookie store has a user stored and returns the
+// user's name, or an empty string if the user is not yet authenticated.
 func authenticated(r *http.Request) (user string) {
 	session, _ := store.Get(r, sessionName)
 	if u, ok := session.Values["user"]; !ok {
