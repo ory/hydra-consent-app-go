@@ -1,5 +1,7 @@
 # hydra-consent-app-go
 
+**This repository works only with ORY Hydra versions prior to the 1.0.0 release. For a version that works with 1.0.0 check out [this repository](https://github.com/ory/hydra-login-consent-node).**
+
 [![Build Status](https://travis-ci.org/ory/hydra-consent-app-go.svg?branch=master)](https://travis-ci.org/ory/hydra-consent-app-go)
 
 This is a simple consent app for Hydra written in Go. It uses the Hydra SDK.
